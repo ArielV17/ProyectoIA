@@ -8,9 +8,6 @@
   <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <style>
     body {
       background-color: #f4f6f9;
@@ -19,10 +16,6 @@
     .card {
       border-radius: 12px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    .btn-primary {
-      background-color: #0d6efd;
-      border: none;
     }
     .result {
       font-size: 2rem;
@@ -35,10 +28,9 @@
 
 <div class="container py-4">
 
-  <!-- Header -->
   <div class="text-center mb-4">
-    <h1>🏠 Predicción Inteligente de Precios de Alquiler</h1>
-    <p class="text-muted">Estimación basada en Machine Learning con LightGBM</p>
+    <h1>🏠 Predicción de Precios de Alquiler</h1>
+    <p class="text-muted">Modelo XGBoost – Mercado inmobiliario</p>
   </div>
 
   <div class="row">
@@ -48,67 +40,55 @@
       <div class="card p-3">
         <h5 class="mb-3">Datos del Inmueble</h5>
 
-        <div class="mb-2">
-          <label class="form-label">Ciudad</label>
-          <select class="form-select" id="ciudad">
-            <option>Quito</option>
-            <option>Guayaquil</option>
-            <option>Cuenca</option>
-          </select>
-        </div>
+        <label class="form-label">Tipo de propiedad</label>
+        <select id="tipo" class="form-select mb-2">
+          {% for t in tipos %}
+          <option value="{{t}}">{{t}}</option>
+          {% endfor %}
+        </select>
 
-        <div class="mb-2">
-          <label class="form-label">Tipo de inmueble</label>
-          <select class="form-select" id="tipo">
-            <option>Departamento</option>
-            <option>Casa</option>
-            <option>Suite</option>
-          </select>
-        </div>
+        <label class="form-label">Ciudad</label>
+        <select id="ciudad" class="form-select mb-2">
+          {% for c in ciudades %}
+          <option value="{{c}}">{{c}}</option>
+          {% endfor %}
+        </select>
 
-        <div class="mb-2">
-          <label class="form-label">Área (m²)</label>
-          <input type="number" class="form-control" id="area" placeholder="80">
-        </div>
+        <label class="form-label">Barrio / Zona</label>
+        <select id="barrio" class="form-select mb-2">
+          {% for b in barrios %}
+          <option value="{{b}}">{{b}}</option>
+          {% endfor %}
+        </select>
 
-        <div class="mb-2">
-          <label class="form-label">Habitaciones</label>
-          <input type="number" class="form-control" id="habitaciones" placeholder="2">
-        </div>
+        <label class="form-label">Área total (m²)</label>
+        <input type="number" id="surface_total" class="form-control mb-2" min="10" required>
 
-        <div class="mb-2">
-          <label class="form-label">Baños</label>
-          <input type="number" class="form-control" id="banos" placeholder="2">
-        </div>
+        <label class="form-label">Número de habitaciones</label>
+        <input type="number" id="bedrooms" class="form-control mb-2" min="0" required>
 
-        <div class="mb-2">
-          <label class="form-label">Parqueaderos</label>
-          <input type="number" class="form-control" id="parqueaderos" placeholder="1">
-        </div>
+        <label class="form-label">Número de baños</label>
+        <input type="number" id="bathrooms" class="form-control mb-3" min="0" required>
 
-        <div class="mb-3">
-          <label class="form-label">Antigüedad (años)</label>
-          <input type="number" class="form-control" id="antiguedad" placeholder="5">
-        </div>
-
-        <button class="btn btn-primary w-100" onclick="predecir()">🔍 Predecir precio</button>
+        <button class="btn btn-primary w-100" onclick="predecir()">
+          🔍 Predecir precio
+        </button>
       </div>
     </div>
 
     <!-- Resultados -->
     <div class="col-md-8">
-      <div class="card p-4 mb-3">
+      <div class="card p-4">
         <h5>Resultado</h5>
-        <div id="loading" class="text-muted">Esperando datos...</div>
+        <p id="loading" class="text-muted">Esperando datos...</p>
+
         <div id="resultado" style="display:none;">
           <p class="result">$ <span id="precio"></span> USD / mes</p>
-          <p class="text-muted">Rango estimado: <strong>$<span id="min"></span> – $<span id="max"></span></strong></p>
+          <p class="text-muted">
+            Rango estimado:
+            <strong>$<span id="min"></span> – $<span id="max"></span></strong>
+          </p>
         </div>
-      </div>
-
-      <div class="card p-4">
-        <h5>Importancia de características</h5>
-        <canvas id="chart"></canvas>
       </div>
     </div>
 
@@ -116,47 +96,34 @@
 </div>
 
 <script>
-  let chart;
+function predecir() {
+  document.getElementById("loading").innerText = "Procesando predicción...";
+  document.getElementById("resultado").style.display = "none";
 
-  function predecir() {
-    document.getElementById('loading').innerText = 'Procesando predicción...';
-    document.getElementById('resultado').style.display = 'none';
-
-    // Simulación de respuesta del backend Flask
-    setTimeout(() => {
-      const precio = 720;
-      document.getElementById('precio').innerText = precio;
-      document.getElementById('min').innerText = precio - 40;
-      document.getElementById('max').innerText = precio + 60;
-
-      document.getElementById('loading').innerText = '';
-      document.getElementById('resultado').style.display = 'block';
-
-      mostrarGrafico();
-    }, 1200);
-  }
-
-  function mostrarGrafico() {
-    const ctx = document.getElementById('chart');
-    if (chart) chart.destroy();
-
-    chart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Área', 'Ciudad', 'Habitaciones', 'Antigüedad', 'Parqueadero'],
-        datasets: [{
-          data: [45, 20, 15, 10, 10],
-          backgroundColor: '#0d6efd'
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        plugins: {
-          legend: { display: false }
-        }
-      }
-    });
-  }
+  fetch("/predict", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tipo: document.getElementById("tipo").value,
+      ciudad: document.getElementById("ciudad").value,
+      barrio: document.getElementById("barrio").value,
+      surface_total: Number(document.getElementById("surface_total").value),
+      bedrooms: Number(document.getElementById("bedrooms").value),
+      bathrooms: Number(document.getElementById("bathrooms").value)
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("precio").innerText = data.precio_estimado;
+    document.getElementById("min").innerText = data.min;
+    document.getElementById("max").innerText = data.max;
+    document.getElementById("loading").innerText = "";
+    document.getElementById("resultado").style.display = "block";
+  })
+  .catch(() => {
+    document.getElementById("loading").innerText = "Error al realizar la predicción";
+  });
+}
 </script>
 
 </body>
