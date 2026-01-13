@@ -14,44 +14,42 @@ model = joblib.load("modelo_xgboost_final.pkl")
 with open("columnas_entrenamiento.pkl", "rb") as f:
     COLUMNAS = pickle.load(f)
 
-# =============================
-# VALORES ORIGINALES (LOS DE ANTES)
-# =============================
 
-TIPOS = [
-    "Departamento",
-    "Local comercial",
-    "Oficina",
-    "Otro"
-]
 
-CIUDADES = [
-    "Guayaquil",
-    "Quito",
-    "Samborondon",
-    "Playas (General Villamil)"
-]
+TIPOS = ["Departamento", "Local comercial", "Oficina", "Casa", "Suite", "Otro"]
+CIUDADES = ["Quito", "Guayaquil", "Samborondon", "Playas (General Villamil)", "Cuenca"]
 
-BARRIOS = [
-    "Centro De Guayaquil",
-    "Centro Histórico",
-    "Centro Norte",
-    "El Ejido",
-    "El Morro",
-    "La Puntilla",
-    "Norte De Guayaquil",
-    "Norte De Quito",
-    "Playas",
-    "Samborondon",
-    "San Sebastian",
-    "Sur De Guayaquil",
-    "Sur De Quito",
-    "Totoracocha",
-    "Valle Los Chillos",
-    "Valle Tumbaco",
-    "Via A La Costa",
-    "Yanuncay"
-]
+# Diccionario de Barrios por Ciudad
+BARRIOS_POR_CIUDAD = {
+    "Quito": [
+        "Centro Histórico",
+        "Centro Norte",
+        "El Ejido",
+        "Norte De Quito",
+        "Sur De Quito",
+        "Valle Los Chillos",
+        "Valle Tumbaco"
+    ],
+    "Guayaquil": [
+        "Centro De Guayaquil",
+        "Norte De Guayaquil",
+        "Sur De Guayaquil",
+        "Via A La Costa",
+        "El Morro" # (Parroquia rural de GYE)
+    ],
+    "Samborondon": [
+        "La Puntilla",
+        "Samborondon"
+    ],
+    "Playas (General Villamil)": [
+        "Playas"
+    ],
+    "Cuenca": [
+        "San Sebastian",
+        "Totoracocha",
+        "Yanuncay"
+    ]
+}
 
 # =============================
 # Rutas
@@ -62,7 +60,7 @@ def index():
         "index.html",
         tipos=TIPOS,
         ciudades=CIUDADES,
-        barrios=BARRIOS
+        barrios_por_ciudad=BARRIOS_POR_CIUDAD
     )
 
 @app.route("/predict", methods=["POST"])

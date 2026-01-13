@@ -2,44 +2,27 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Predicción de Precios de Alquiler</title>
+  <title>Predicción Inmobiliaria AI</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
   <style>
-    body {
-      background-color: #f4f6f9;
-      font-family: 'Segoe UI', sans-serif;
-    }
-    .card {
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    .result {
-      font-size: 2rem;
-      font-weight: bold;
-      color: #198754;
-    }
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
+    .card { border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .result { font-size: 2rem; font-weight: bold; color: #198754; }
   </style>
 </head>
 <body>
 
 <div class="container py-4">
-
   <div class="text-center mb-4">
-    <h1>🏠 Predicción de Precios de Alquiler</h1>
-    <p class="text-muted">Modelo XGBoost – Mercado inmobiliario</p>
+    <h1>🏠 Predicción de Alquiler</h1>
+    <p class="text-muted">Modelo XGBoost - Validación por Ciudad</p>
   </div>
 
   <div class="row">
-
-    <!-- Formulario -->
     <div class="col-md-4">
       <div class="card p-3">
-        <h5 class="mb-3">Datos del Inmueble</h5>
-
+        
         <label class="form-label">Tipo de propiedad</label>
         <select id="tipo" class="form-select mb-2">
           {% for t in tipos %}
@@ -48,7 +31,7 @@
         </select>
 
         <label class="form-label">Ciudad</label>
-        <select id="ciudad" class="form-select mb-2">
+        <select id="ciudad" class="form-select mb-2" onchange="cargarBarrios()">
           {% for c in ciudades %}
           <option value="{{c}}">{{c}}</option>
           {% endfor %}
@@ -56,74 +39,113 @@
 
         <label class="form-label">Barrio / Zona</label>
         <select id="barrio" class="form-select mb-2">
-          {% for b in barrios %}
-          <option value="{{b}}">{{b}}</option>
-          {% endfor %}
-        </select>
+          </select>
 
         <label class="form-label">Área total (m²)</label>
-        <input type="number" id="surface_total" class="form-control mb-2" min="10" required>
+        <input type="number" id="surface_total" class="form-control mb-2" value="80" min="10" oninput="validarPositivo(this)">
 
-        <label class="form-label">Número de habitaciones</label>
-        <input type="number" id="bedrooms" class="form-control mb-2" min="0" required>
+        <label class="form-label">Habitaciones</label>
+        <input type="number" id="bedrooms" class="form-control mb-2" value="2" min="0" oninput="validarPositivo(this)">
 
-        <label class="form-label">Número de baños</label>
-        <input type="number" id="bathrooms" class="form-control mb-3" min="0" required>
+        <label class="form-label">Baños</label>
+        <input type="number" id="bathrooms" class="form-control mb-3" value="1" min="0" oninput="validarPositivo(this)">
 
-        <button class="btn btn-primary w-100" onclick="predecir()">
-          🔍 Predecir precio
-        </button>
+        <button class="btn btn-primary w-100" onclick="predecir()">🔍 Calcular Precio</button>
       </div>
     </div>
 
-    <!-- Resultados -->
     <div class="col-md-8">
       <div class="card p-4">
-        <h5>Resultado</h5>
-        <p id="loading" class="text-muted">Esperando datos...</p>
-
+        <h5>Estimación de Mercado</h5>
+        <p id="loading" class="text-muted" style="display:none;">Calculando...</p>
+        
         <div id="resultado" style="display:none;">
-          <p class="result">$ <span id="precio"></span> USD / mes</p>
-          <p class="text-muted">
-            Rango estimado:
-            <strong>$<span id="min"></span> – $<span id="max"></span></strong>
-          </p>
+            <p class="result">$ <span id="precio">0</span> USD</p>
+            <p>Rango sugerido: <strong>$<span id="min">0</span> - $<span id="max">0</span></strong></p>
         </div>
       </div>
     </div>
-
   </div>
 </div>
 
 <script>
-function predecir() {
-  document.getElementById("loading").innerText = "Procesando predicción...";
-  document.getElementById("resultado").style.display = "none";
+  // 1. Recibir el diccionario de Python en JavaScript
+  const datosBarrios = {{ barrios_por_ciudad | tojson }};
 
-  fetch("/predict", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      tipo: document.getElementById("tipo").value,
-      ciudad: document.getElementById("ciudad").value,
-      barrio: document.getElementById("barrio").value,
-      surface_total: Number(document.getElementById("surface_total").value),
-      bedrooms: Number(document.getElementById("bedrooms").value),
-      bathrooms: Number(document.getElementById("bathrooms").value)
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById("precio").innerText = data.precio_estimado;
-    document.getElementById("min").innerText = data.min;
-    document.getElementById("max").innerText = data.max;
-    document.getElementById("loading").innerText = "";
-    document.getElementById("resultado").style.display = "block";
-  })
-  .catch(() => {
-    document.getElementById("loading").innerText = "Error al realizar la predicción";
-  });
-}
+  function cargarBarrios() {
+    const selectorCiudad = document.getElementById("ciudad");
+    const selectorBarrio = document.getElementById("barrio");
+    const ciudadSeleccionada = selectorCiudad.value;
+
+    // Limpiar opciones anteriores
+    selectorBarrio.innerHTML = "";
+
+    // Obtener los barrios correspondientes a la ciudad elegida
+    const barrios = datosBarrios[ciudadSeleccionada] || [];
+
+    // Crear nuevas opciones
+    barrios.forEach(function(barrio) {
+      const opcion = document.createElement("option");
+      opcion.value = barrio;
+      opcion.text = barrio;
+      selectorBarrio.appendChild(opcion);
+    });
+  }
+
+  // Cargar los barrios por defecto al iniciar la página (para la primera ciudad)
+  window.onload = cargarBarrios;
+
+  //
+  function validarPositivo(input) {
+    if (input.value < 0) input.value = 0;
+  }
+  
+  async function predecir() {
+
+    let area = document.getElementById('surface_total').value;
+    let habs = document.getElementById('bedrooms').value;
+    let banos = document.getElementById('bathrooms').value;
+
+    if (area <= 0 || habs < 0 || banos < 0) {
+        alert("⚠️ Por favor, ingresa solo valores positivos válidos.");
+        return;
+    }
+
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('resultado').style.display = 'none';
+
+    const data = {
+      tipo: document.getElementById('tipo').value,
+      ciudad: document.getElementById('ciudad').value,
+      barrio: document.getElementById('barrio').value,
+      surface_total: document.getElementById('surface_total').value,
+      bedrooms: document.getElementById('bedrooms').value,
+      bathrooms: document.getElementById('bathrooms').value
+    };
+
+    try {
+        const response = await fetch('/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        
+        if(result.error) {
+            alert("Error: " + result.error);
+        } else {
+            document.getElementById('precio').innerText = result.precio_estimado;
+            document.getElementById('min').innerText = result.min;
+            document.getElementById('max').innerText = result.max;
+            document.getElementById('resultado').style.display = 'block';
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión");
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+  }
 </script>
 
 </body>
