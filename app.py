@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 import pickle
 import pandas as pd
+import numpy as np
 
 app = Flask(__name__)
 
@@ -82,7 +83,7 @@ def predict():
     X[f"l4_{data['barrio']}"] = 1
 
     # Predicción
-    precio = model.predict(X)[0]
+    precio = np.exp(model.predict(X)[0])
 
     return jsonify({
         "precio_estimado": round(float(precio), 2),
@@ -93,6 +94,7 @@ def predict():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
