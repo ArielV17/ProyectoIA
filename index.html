@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Predicción de Precios de Alquiler</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background-color: #f4f6f9;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .card {
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .btn-primary {
+      background-color: #0d6efd;
+      border: none;
+    }
+    .result {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #198754;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container py-4">
+
+  <!-- Header -->
+  <div class="text-center mb-4">
+    <h1>🏠 Predicción Inteligente de Precios de Alquiler</h1>
+    <p class="text-muted">Estimación basada en Machine Learning con LightGBM</p>
+  </div>
+
+  <div class="row">
+
+    <!-- Formulario -->
+    <div class="col-md-4">
+      <div class="card p-3">
+        <h5 class="mb-3">Datos del Inmueble</h5>
+
+        <div class="mb-2">
+          <label class="form-label">Ciudad</label>
+          <select class="form-select" id="ciudad">
+            <option>Quito</option>
+            <option>Guayaquil</option>
+            <option>Cuenca</option>
+          </select>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Tipo de inmueble</label>
+          <select class="form-select" id="tipo">
+            <option>Departamento</option>
+            <option>Casa</option>
+            <option>Suite</option>
+          </select>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Área (m²)</label>
+          <input type="number" class="form-control" id="area" placeholder="80">
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Habitaciones</label>
+          <input type="number" class="form-control" id="habitaciones" placeholder="2">
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Baños</label>
+          <input type="number" class="form-control" id="banos" placeholder="2">
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Parqueaderos</label>
+          <input type="number" class="form-control" id="parqueaderos" placeholder="1">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Antigüedad (años)</label>
+          <input type="number" class="form-control" id="antiguedad" placeholder="5">
+        </div>
+
+        <button class="btn btn-primary w-100" onclick="predecir()">🔍 Predecir precio</button>
+      </div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="col-md-8">
+      <div class="card p-4 mb-3">
+        <h5>Resultado</h5>
+        <div id="loading" class="text-muted">Esperando datos...</div>
+        <div id="resultado" style="display:none;">
+          <p class="result">$ <span id="precio"></span> USD / mes</p>
+          <p class="text-muted">Rango estimado: <strong>$<span id="min"></span> – $<span id="max"></span></strong></p>
+        </div>
+      </div>
+
+      <div class="card p-4">
+        <h5>Importancia de características</h5>
+        <canvas id="chart"></canvas>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let chart;
+
+  function predecir() {
+    document.getElementById('loading').innerText = 'Procesando predicción...';
+    document.getElementById('resultado').style.display = 'none';
+
+    // Simulación de respuesta del backend Flask
+    setTimeout(() => {
+      const precio = 720;
+      document.getElementById('precio').innerText = precio;
+      document.getElementById('min').innerText = precio - 40;
+      document.getElementById('max').innerText = precio + 60;
+
+      document.getElementById('loading').innerText = '';
+      document.getElementById('resultado').style.display = 'block';
+
+      mostrarGrafico();
+    }, 1200);
+  }
+
+  function mostrarGrafico() {
+    const ctx = document.getElementById('chart');
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Área', 'Ciudad', 'Habitaciones', 'Antigüedad', 'Parqueadero'],
+        datasets: [{
+          data: [45, 20, 15, 10, 10],
+          backgroundColor: '#0d6efd'
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
