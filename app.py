@@ -87,8 +87,8 @@ def predict():
 
     return jsonify({
         "precio_estimado": round(float(precio), 2),
-        "min": round(float(precio * 0.95), 2),
-        "max": round(float(precio * 1.05), 2)
+        "min": round(float(precio-150.81), 2),
+        "max": round(float(precio+150.81), 2)
     })
 
 
